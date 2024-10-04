@@ -24,7 +24,7 @@ const ContactsPage: React.FC = () => {
     useEffect(() => {
         const fetchContacts = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/contact'); // Adjust the port as needed
+                const response = await fetch('http://localhost:3000/api/contact'); // Adjust the port as needed
                 if (!response.ok) {
                     throw new Error('Failed to fetch contacts');
                 }

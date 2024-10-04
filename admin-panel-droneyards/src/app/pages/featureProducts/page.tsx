@@ -2,15 +2,29 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box, List, ListItem, ListItemText, IconButton } from '@mui/material';
+import { Container, TextField, Button, Typography, Box, List, ListItem, ListItemText, IconButton, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function Products() {
-    const [products, setProducts] = useState<{ _id: string, name: string, desc: string }[]>([]);  
-    const [newProduct, setNewProduct] = useState({ name: '', desc: '' });  
-    const [error, setError] = useState('');  
+interface Product {
+    _id: string;
+    name: string;
+    desc: string;
+    type: string;
+    price: number;
+}
 
-    
+interface NewProduct {
+    name: string;
+    desc: string;
+    type: string;
+    price: string; // Keep as string for controlled input
+}
+
+const Products: React.FC = () => {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [newProduct, setNewProduct] = useState<NewProduct>({ name: '', desc: '', type: '', price: '' });
+    const [error, setError] = useState<string>('');
+
     useEffect(() => {
         fetchProducts();
     }, []);
@@ -18,14 +32,14 @@ export default function Products() {
     // Fetch all products from the API
     const fetchProducts = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/products');
+            const response = await axios.get<Product[]>('http://localhost:3000/api/products');
             setProducts(response.data);
         } catch (error) {
             setError('Failed to load products');
         }
     };
 
-    // Handle form input changes
+    // Handle form input changes for TextField
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setNewProduct((prevProduct) => ({
@@ -34,12 +48,20 @@ export default function Products() {
         }));
     };
 
+    // Handle form input changes for Select
+    const handleSelectChange = (event: SelectChangeEvent<string>) => {
+        setNewProduct((prevProduct) => ({
+            ...prevProduct,
+            type: event.target.value,
+        }));
+    };
+
     // Add a new product
     const addProduct = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/api/products', newProduct);
+            const response = await axios.post<{ product: Product }>('http://localhost:3000/api/products', newProduct);
             setProducts((prevProducts) => [...prevProducts, response.data.product]);  // Add new product to the list
-            setNewProduct({ name: '', desc: '' });  // Clear form
+            setNewProduct({ name: '', desc: '', type: '', price: '' });  // Clear form
         } catch (error) {
             setError('Failed to add product');
         }
@@ -48,7 +70,7 @@ export default function Products() {
     // Delete a product by ID
     const deleteProduct = async (id: string) => {
         try {
-            await axios.delete(`http://localhost:5000/api/products/${id}`);
+            await axios.delete(`http://localhost:3000/api/products/${id}`);
             setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));  // Remove from list
         } catch (error) {
             setError('Failed to delete product');
@@ -57,7 +79,7 @@ export default function Products() {
 
     return (
         <Container maxWidth="md">
-            <Typography variant="h4" align="center" sx={{color:"black"}} gutterBottom>
+            <Typography variant="h4" align="center" sx={{ color: "black", marginTop:"10px" }} gutterBottom>
                 Feature Products Management
             </Typography>
 
@@ -66,7 +88,7 @@ export default function Products() {
 
             {/* Form to add a new product */}
             <Box mb={4}>
-                <Typography variant="h6" sx={{color:"black"}}>Add a New Product</Typography>
+                <Typography variant="h6" sx={{ color: "black" }}>Add a New Product</Typography>
                 <TextField
                     label="Product Name"
                     variant="outlined"
@@ -85,11 +107,41 @@ export default function Products() {
                     onChange={handleInputChange}
                     margin="normal"
                 />
+                <FormControl fullWidth margin="normal">
+                    <InputLabel>Product Type</InputLabel>
+                    <Select
+                        name="type"
+                        value={newProduct.type}
+                        onChange={handleSelectChange}
+                        label="Product Type"
+                    >
+                        <MenuItem value="Drones">Drones</MenuItem>
+                        <MenuItem value="Frames">Frames</MenuItem>
+                        <MenuItem value="Propellers">Propellers</MenuItem>
+                        <MenuItem value="Batteries">Batteries</MenuItem>
+                        <MenuItem value="Motors">Motors</MenuItem>
+                        <MenuItem value="Electronics">Electronics</MenuItem>
+                        <MenuItem value="Controllers">Controllers</MenuItem>
+                        <MenuItem value="Fc-chip">Fc-chip</MenuItem>
+                        <MenuItem value="Featured_products">Featured Products</MenuItem>
+                        {/* Add more types as needed */}
+                    </Select>
+                </FormControl>
+                <TextField
+                    label="Product Price"
+                    variant="outlined"
+                    fullWidth
+                    name="price"
+                    type="number"
+                    value={newProduct.price}
+                    onChange={handleInputChange}
+                    margin="normal"
+                />
                 <Button
                     variant="contained"
                     color="primary"
                     onClick={addProduct}
-                    disabled={!newProduct.name || !newProduct.desc}
+                    disabled={!newProduct.name || !newProduct.desc || !newProduct.type || !newProduct.price}
                 >
                     Add Product
                 </Button>
@@ -97,7 +149,7 @@ export default function Products() {
 
             {/* List of products */}
             <Box>
-                <Typography variant="h6" sx={{color:"black"}}>All Products</Typography>
+                <Typography variant="h6" sx={{ color: "black" }}>All Products</Typography>
                 <List>
                     {products.map((product) => (
                         <ListItem
@@ -108,9 +160,16 @@ export default function Products() {
                                 </IconButton>
                             }
                         >
-                            <ListItemText sx={{color:"black"}}
+                            <ListItemText
+                                sx={{ color: "black" }}
                                 primary={product.name}
-                                secondary={product.desc}
+                                secondary={
+                                    <>
+                                        <div>{product.desc}</div>
+                                        <div>Type: {product.type}</div>
+                                        <div>Price: ${product.price?.toFixed(2) || 'N/A'}</div>
+                                    </>
+                                }
                             />
                         </ListItem>
                     ))}
@@ -118,4 +177,6 @@ export default function Products() {
             </Box>
         </Container>
     );
-}
+};
+
+export default Products;
