@@ -29,7 +29,6 @@ const Products: React.FC = () => {
         fetchProducts();
     }, []);
 
-    // Fetch all products from the API
     const fetchProducts = async () => {
         try {
             const response = await axios.get<Product[]>('http://localhost:3000/api/products');
@@ -39,7 +38,6 @@ const Products: React.FC = () => {
         }
     };
 
-    // Handle form input changes for TextField
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setNewProduct((prevProduct) => ({
@@ -48,7 +46,6 @@ const Products: React.FC = () => {
         }));
     };
 
-    // Handle form input changes for Select
     const handleSelectChange = (event: SelectChangeEvent<string>) => {
         setNewProduct((prevProduct) => ({
             ...prevProduct,
@@ -56,22 +53,22 @@ const Products: React.FC = () => {
         }));
     };
 
-    // Add a new product
     const addProduct = async () => {
         try {
             const response = await axios.post<{ product: Product }>('http://localhost:3000/api/products', newProduct);
-            setProducts((prevProducts) => [...prevProducts, response.data.product]);  // Add new product to the list
-            setNewProduct({ name: '', desc: '', type: '', price: '' });  // Clear form
+            setProducts((prevProducts) => [...prevProducts, response.data.product]);
+            setNewProduct({ name: '', desc: '', type: '', price: '' });
+            setError(''); // Clear any existing error on successful addition
         } catch (error) {
             setError('Failed to add product');
         }
     };
 
-    // Delete a product by ID
     const deleteProduct = async (id: string) => {
         try {
             await axios.delete(`http://localhost:3000/api/products/${id}`);
-            setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));  // Remove from list
+            setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));
+            setError(''); // Clear any existing error on successful deletion
         } catch (error) {
             setError('Failed to delete product');
         }
@@ -79,12 +76,12 @@ const Products: React.FC = () => {
 
     return (
         <Container maxWidth="md">
-            <Typography variant="h4" align="center" sx={{ color: "black", marginTop:"10px" }} gutterBottom>
+            <Typography variant="h4" align="center" sx={{ color: "black", marginTop: "10px" }} gutterBottom>
                 Feature Products Management
             </Typography>
 
             {/* Error message */}
-            {error && <Typography color="error">{error}</Typography>}
+            {error && <Typography color="error" align="center">{error}</Typography>}
 
             {/* Form to add a new product */}
             <Box mb={4}>
@@ -124,7 +121,6 @@ const Products: React.FC = () => {
                         <MenuItem value="Controllers">Controllers</MenuItem>
                         <MenuItem value="Fc-chip">Fc-chip</MenuItem>
                         <MenuItem value="Featured_products">Featured Products</MenuItem>
-                        {/* Add more types as needed */}
                     </Select>
                 </FormControl>
                 <TextField
