@@ -1,178 +1,113 @@
+// src/app/pages/featureProducts/page.tsx
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardMedia, Typography, Button, Grid, Box, CircularProgress, Snackbar, Alert } from '@mui/material';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box, List, ListItem, ListItemText, IconButton, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { useRouter } from 'next/navigation'; // Ensure you import from next/navigation
 
-interface Product {
-    _id: string;
-    name: string;
-    desc: string;
-    type: string;
-    price: number;
-}
+const FeatureProductsPage = () => {
+    interface Product {
+        id: string;
+        name: string;
+        desc: string;
+        price: number;
+        type: string;
+        imageUrls: string[];
+    }
 
-interface NewProduct {
-    name: string;
-    desc: string;
-    type: string;
-    price: string; // Keep as string for controlled input
-}
-
-const Products: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
-    const [newProduct, setNewProduct] = useState<NewProduct>({ name: '', desc: '', type: '', price: '' });
-    const [error, setError] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const router = useRouter(); // Correctly using useRouter
 
     useEffect(() => {
+        const fetchProducts = async () => {
+            setLoading(true); // Start loading
+            try {
+                const response = await axios.get('http://localhost:3000/api/products'); // Use relative URL
+                setProducts(response.data);
+            } catch (error) {
+                setError('Failed to fetch products');
+                console.error('Failed to fetch products', error);
+            } finally {
+                setLoading(false); // Stop loading
+            }
+        };
+
         fetchProducts();
     }, []);
 
-    const fetchProducts = async () => {
-        try {
-            const response = await axios.get<Product[]>('http://localhost:3000/api/products');
-            setProducts(response.data);
-        } catch (error) {
-            setError('Failed to load products');
+    const handleDelete = async (id: string) => {
+        const confirmed = confirm('Are you sure you want to delete this product?');
+        if (confirmed) {
+            try {
+                await axios.delete(`http://localhost:3000/api/products/${id}`);
+                setProducts(products.filter((product) => product.id !== id));
+                setSuccessMessage('Product deleted successfully!');
+            } catch (error) {
+                setError('Failed to delete product');
+                console.error('Failed to delete product', error);
+            }
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setNewProduct((prevProduct) => ({
-            ...prevProduct,
-            [name]: value
-        }));
-    };
-
-    const handleSelectChange = (event: SelectChangeEvent<string>) => {
-        setNewProduct((prevProduct) => ({
-            ...prevProduct,
-            type: event.target.value,
-        }));
-    };
-
-    const addProduct = async () => {
-        try {
-            const response = await axios.post<{ product: Product }>('http://localhost:3000/api/products', newProduct);
-            setProducts((prevProducts) => [...prevProducts, response.data.product]);
-            setNewProduct({ name: '', desc: '', type: '', price: '' });
-            setError(''); // Clear any existing error on successful addition
-        } catch (error) {
-            setError('Failed to add product');
-        }
-    };
-
-    const deleteProduct = async (id: string) => {
-        try {
-            await axios.delete(`http://localhost:3000/api/products/${id}`);
-            setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));
-            setError(''); // Clear any existing error on successful deletion
-        } catch (error) {
-            setError('Failed to delete product');
-        }
+    const handleCloseSnackbar = () => {
+        setError(null);
+        setSuccessMessage(null);
     };
 
     return (
-        <Container maxWidth="md">
-            <Typography variant="h4" align="center" sx={{ color: "black", marginTop: "10px" }} gutterBottom>
-                Feature Products Management
+        <Box sx={{ p: 3 }}>
+            <Typography variant="h4" gutterBottom>
+                Featured Products
             </Typography>
-
-            {/* Error message */}
-            {error && <Typography color="error" align="center">{error}</Typography>}
-
-            {/* Form to add a new product */}
-            <Box mb={4}>
-                <Typography variant="h6" sx={{ color: "black" }}>Add a New Product</Typography>
-                <TextField
-                    label="Product Name"
-                    variant="outlined"
-                    fullWidth
-                    name="name"
-                    value={newProduct.name}
-                    onChange={handleInputChange}
-                    margin="normal"
-                />
-                <TextField
-                    label="Product Description"
-                    variant="outlined"
-                    fullWidth
-                    name="desc"
-                    value={newProduct.desc}
-                    onChange={handleInputChange}
-                    margin="normal"
-                />
-                <FormControl fullWidth margin="normal">
-                    <InputLabel>Product Type</InputLabel>
-                    <Select
-                        name="type"
-                        value={newProduct.type}
-                        onChange={handleSelectChange}
-                        label="Product Type"
-                    >
-                        <MenuItem value="Drones">Drones</MenuItem>
-                        <MenuItem value="Frames">Frames</MenuItem>
-                        <MenuItem value="Propellers">Propellers</MenuItem>
-                        <MenuItem value="Batteries">Batteries</MenuItem>
-                        <MenuItem value="Motors">Motors</MenuItem>
-                        <MenuItem value="Electronics">Electronics</MenuItem>
-                        <MenuItem value="Controllers">Controllers</MenuItem>
-                        <MenuItem value="Fc-chip">Fc-chip</MenuItem>
-                        <MenuItem value="Featured_products">Featured Products</MenuItem>
-                    </Select>
-                </FormControl>
-                <TextField
-                    label="Product Price"
-                    variant="outlined"
-                    fullWidth
-                    name="price"
-                    type="number"
-                    value={newProduct.price}
-                    onChange={handleInputChange}
-                    margin="normal"
-                />
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={addProduct}
-                    disabled={!newProduct.name || !newProduct.desc || !newProduct.type || !newProduct.price}
-                >
-                    Add Product
-                </Button>
-            </Box>
-
-            {/* List of products */}
-            <Box>
-                <Typography variant="h6" sx={{ color: "black" }}>All Products</Typography>
-                <List>
+            {loading ? (
+                <CircularProgress />
+            ) : (
+                <Grid container spacing={2}>
                     {products.map((product) => (
-                        <ListItem
-                            key={product._id}
-                            secondaryAction={
-                                <IconButton edge="end" aria-label="delete" onClick={() => deleteProduct(product._id)}>
-                                    <DeleteIcon />
-                                </IconButton>
-                            }
-                        >
-                            <ListItemText
-                                sx={{ color: "black" }}
-                                primary={product.name}
-                                secondary={
-                                    <>
-                                        <div>{product.desc}</div>
-                                        <div>Type: {product.type}</div>
-                                        <div>Price: ${product.price?.toFixed(2) || 'N/A'}</div>
-                                    </>
-                                }
-                            />
-                        </ListItem>
+                        <Grid item xs={12} sm={6} md={4} key={product.id}>
+                            <Card>
+                                <CardMedia
+                                    component="img"
+                                    height="140"
+                                    image={product.imageUrls[0]} // Display the first image
+                                    alt={product.name}
+                                />
+                                <CardContent>
+                                    <Typography variant="h5">{product.name}</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {product.desc}
+                                    </Typography>
+                                    <Typography variant="body1">Price: ${product.price}</Typography>
+                                    <Typography variant="body2">Type: {product.type}</Typography>
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        onClick={() => handleDelete(product.id)}
+                                    >
+                                        Delete
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     ))}
-                </List>
-            </Box>
-        </Container>
+                </Grid>
+            )}
+            <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+                    {error}
+                </Alert>
+            </Snackbar>
+            <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    {successMessage}
+                </Alert>
+            </Snackbar>
+        </Box>
     );
 };
 
-export default Products;
+export default FeatureProductsPage;
